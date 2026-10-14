@@ -122,6 +122,7 @@ export default function Dashboard() {
               </div>
               <span className={`estado ${d.estado}`}>{d.estado}</span>
               <button onClick={() => abrir(d.storage_path)}>Original</button>
+              <button onClick={() => navigate(`/documento/${d.id}/auditoria`)}>Historial</button>
               {d.estado === 'borrador' && (
                 <button onClick={() => navigate(`/documento/${d.id}/configurar`)}>Configurar firmantes</button>
               )}
