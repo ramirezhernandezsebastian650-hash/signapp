@@ -59,3 +59,11 @@ button:disabled { opacity: .6; }
 .tabla { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px #0001; }
 .tabla th, .tabla td { text-align: left; padding: 10px 14px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
 .tabla th { background: #f1f5f9; }
+.resumen { margin: 6px 0 2px; font-size: 13px; color: #334155; }
+.chips { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { padding: 2px 10px; border-radius: 999px; font-size: 12px; background: #e2e8f0; }
+.chip.pendiente { background: #fef3c7; }
+.chip.firmado { background: #bbf7d0; }
+.chip.rechazado { background: #fecaca; }
+.motivo { color: #b91c1c; margin-top: 4px; }
+.estado.cancelado { background: #e2e8f0; }
