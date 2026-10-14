@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import Auth from './pages/Auth'
 import Dashboard from './pages/Dashboard'
 import FirmarPublico from './pages/FirmarPublico'
+import Auditoria from './pages/Auditoria'
 import ConfigurarFirmantes from './pages/ConfigurarFirmantes'
 
 function Protegida({ children }: { children: ReactNode }) {
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="/firmar/:token" element={<FirmarPublico />} />
           <Route path="/" element={<Protegida><Dashboard /></Protegida>} />
           <Route path="/documento/:id/configurar" element={<Protegida><ConfigurarFirmantes /></Protegida>} />
+          <Route path="/documento/:id/auditoria" element={<Protegida><Auditoria /></Protegida>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
