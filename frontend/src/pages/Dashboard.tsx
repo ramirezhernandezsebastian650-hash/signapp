@@ -20,6 +20,16 @@ type Doc = {
   solicitudes_firma: Firmante[]
 }
 
+const ETIQUETAS: Record<string, string> = {
+  borrador: 'Borrador',
+  en_proceso: 'En proceso',
+  firmado: 'Firmado',
+  rechazado: 'Rechazado',
+  cancelado: 'Cancelado',
+  pendiente: 'Pendiente',
+}
+const etiqueta = (estado: string) => ETIQUETAS[estado] ?? estado
+
 async function sha256(file: File) {
   const buffer = await file.arrayBuffer()
   const hash = await crypto.subtle.digest('SHA-256', buffer)
@@ -107,64 +117,93 @@ export default function Dashboard() {
   return (
     <div className="panel">
       <header>
-        <h1>Mis documentos</h1>
-        <div>
-          <span>Hola, {nombre || '...'}</span>{' '}
-          <button onClick={() => supabase.auth.signOut()}>Cerrar sesión</button>
+        <div className="titulo-con-mascota">
+          <img className="mascota-chica" src="/mascotas/patito.svg" alt="" />
+          <div>
+            <h1>Mis documentos</h1>
+            <p className="saludo">Hola, {nombre || '...'} 👋</p>
+          </div>
         </div>
+        <button onClick={() => supabase.auth.signOut()}>Cerrar sesión</button>
       </header>
 
-      <div className="fila" style={{ alignItems: 'center', margin: '24px 0 8px' }}>
-        <label className="subir" style={{ margin: 0 }}>
+      <div className="barra-acciones">
+        <label className="subir">
           {subiendo ? 'Subiendo...' : '+ Subir documento PDF'}
           <input type="file" accept="application/pdf" onChange={subir} disabled={subiendo} hidden />
         </label>
-        <button onClick={cargarDocs} style={{ flex: 'none' }}>Actualizar</button>
+        <button onClick={cargarDocs}>Actualizar</button>
       </div>
 
       {error && <p className="mensaje">{error}</p>}
 
       {docs.length === 0 ? (
-        <p className="vacio">Aún no tienes documentos. Sube el primero.</p>
+        <div className="vacio">
+          <img className="mascota-grande" src="/mascotas/gatito.svg" alt="" />
+          <p><b>Aún no tienes documentos</b></p>
+          <p>Sube el primero y empezamos.</p>
+        </div>
       ) : (
         <ul className="lista">
           {docs.map((d) => {
             const firmantes = d.solicitudes_firma ?? []
             const firmaron = firmantes.filter((f) => f.estado === 'firmado').length
+            const rechazos = firmantes.filter((f) => f.estado === 'rechazado')
             return (
-              <li key={d.id}>
-                <div>
-                  <strong>{d.nombre_archivo}</strong>
-                  <small>SHA-256: {d.hash_original?.slice(0, 16)}…</small>
+              <li key={d.id} className="doc-card">
+                <div className="doc-top">
+                  <div className="doc-info">
+                    <h3 className="doc-nombre">{d.nombre_archivo}</h3>
+                    <small className="doc-hash">SHA-256 {d.hash_original?.slice(0, 16)}…</small>
+                  </div>
+                  <span className={`estado ${d.estado}`}>{etiqueta(d.estado)}</span>
+                </div>
 
-                  {firmantes.length > 0 && (
-                    <p className="resumen">{firmaron} de {firmantes.length} firmaron</p>
-                  )}
-                  {firmantes.length > 0 && (
+                {firmantes.length > 0 && (
+                  <div className="doc-seccion">
+                    <div className="doc-seccion-titulo">
+                      <span>Firmantes</span>
+                      <span>{firmaron} de {firmantes.length} firmaron</span>
+                    </div>
+                    <div className="progreso">
+                      <div className="progreso-barra" style={{ width: `${(firmaron / firmantes.length) * 100}%` }} />
+                    </div>
                     <p className="chips">
                       {firmantes.map((f) => (
-                        <span key={f.id} className={`chip ${f.estado}`} title={f.motivo_rechazo ?? ''}>
-                          {f.firmante_correo} · {f.estado}
+                        <span key={f.id} className={`chip ${f.estado}`}>
+                          {f.firmante_correo} · {etiqueta(f.estado)}
                         </span>
                       ))}
                     </p>
-                  )}
-                  {firmantes.filter((f) => f.estado === 'rechazado').map((f) => (
-                    <small key={f.id} className="motivo">
-                      {f.firmante_correo} rechazó: {f.motivo_rechazo}
-                    </small>
-                  ))}
-                </div>
+                  </div>
+                )}
 
-                <span className={`estado ${d.estado}`}>{d.estado}</span>
-                <button onClick={() => abrir(d.storage_path)}>Original</button>
-                <button onClick={() => navigate(`/documento/${d.id}/auditoria`)}>Historial</button>
-                {d.estado === 'borrador' && (
-                  <button onClick={() => navigate(`/documento/${d.id}/configurar`)}>Configurar firmantes</button>
+                {rechazos.length > 0 && (
+                  <div className="doc-motivo">
+                    <p className="doc-motivo-titulo">Motivo del rechazo</p>
+                    {rechazos.map((f) => (
+                      <div key={f.id} className="doc-motivo-item">
+                        <span className="doc-motivo-quien">{f.firmante_correo}</span>
+                        <p className="doc-motivo-texto">“{f.motivo_rechazo}”</p>
+                      </div>
+                    ))}
+                  </div>
                 )}
-                {d.estado === 'firmado' && d.storage_path_final && (
-                  <button onClick={() => abrirFinal(d.storage_path_final!)}>Firmado</button>
-                )}
+
+                <div className="doc-acciones">
+                  <button onClick={() => abrir(d.storage_path)}>Ver original</button>
+                  <button onClick={() => navigate(`/documento/${d.id}/auditoria`)}>Historial</button>
+                  {d.estado === 'borrador' && (
+                    <button className="primario" onClick={() => navigate(`/documento/${d.id}/configurar`)}>
+                      Configurar firmantes
+                    </button>
+                  )}
+                  {d.estado === 'firmado' && d.storage_path_final && (
+                    <button className="primario" onClick={() => abrirFinal(d.storage_path_final!)}>
+                      Ver firmado
+                    </button>
+                  )}
+                </div>
               </li>
             )
           })}
