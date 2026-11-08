@@ -1,13 +1,19 @@
-import { PDFDocument } from 'pdf-lib'
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import { createHash } from 'node:crypto'
 import { admin } from './supabase.js'
-import { enviarCorreo, esc } from './correo.js'
+import { enviarCorreo, esc, plantilla } from './correo.js'
 
 const sha256 = (datos: Uint8Array) => createHash('sha256').update(datos).digest('hex')
 
 type Zona = { pagina: number; pos_x: number; pos_y: number; ancho: number; alto: number }
 type Firma = { tipo: string; archivo_firma_path: string }
-type SolicitudConFirma = { id: string; zonas_firma: Zona[]; firmas: Firma | Firma[] | null }
+type SolicitudConFirma = {
+  id: string
+  firmante_correo: string
+  zonas_firma: Zona[]
+  firmas: Firma | Firma[] | null
+}
+type DocBasico = { id: string; nombre_archivo: string; propietario_id: string }
 
 async function bajar(bucket: string, ruta: string) {
   const { data, error } = await admin.storage.from(bucket).download(ruta)
@@ -15,7 +21,9 @@ async function bajar(bucket: string, ruta: string) {
   return new Uint8Array(await data.arrayBuffer())
 }
 
-async function generarPdfFinal(documentoId: string) {
+// Arma el PDF con las firmas registradas.
+// completo = true exige todas las firmas; completo = false genera una vista previa.
+async function armarPdf(documentoId: string, completo: boolean) {
   const { data: doc, error } = await admin
     .from('documentos')
     .select('id, nombre_archivo, propietario_id, storage_path, hash_original')
@@ -25,7 +33,7 @@ async function generarPdfFinal(documentoId: string) {
 
   const { data: sols, error: eSols } = await admin
     .from('solicitudes_firma')
-    .select('id, zonas_firma(pagina, pos_x, pos_y, ancho, alto), firmas(tipo, archivo_firma_path)')
+    .select('id, firmante_correo, zonas_firma(pagina, pos_x, pos_y, ancho, alto), firmas(tipo, archivo_firma_path)')
     .eq('documento_id', documentoId)
   if (eSols || !sols) throw new Error('No se pudieron leer las firmas.')
 
@@ -36,10 +44,16 @@ async function generarPdfFinal(documentoId: string) {
   }
 
   const pdf = await PDFDocument.load(original)
+  const lista = sols as unknown as SolicitudConFirma[]
+  let faltan = 0
 
-  for (const s of sols as unknown as SolicitudConFirma[]) {
+  for (const s of lista) {
     const firma = Array.isArray(s.firmas) ? s.firmas[0] : s.firmas
-    if (!firma) throw new Error(`Falta la firma de la solicitud ${s.id}.`)
+    if (!firma) {
+      if (completo) throw new Error(`Falta la firma de la solicitud ${s.id}.`)
+      faltan++
+      continue
+    }
 
     const bytes = await bajar('firmas', firma.archivo_firma_path)
     const imagen = firma.archivo_firma_path.endsWith('.png')
@@ -70,7 +84,65 @@ async function generarPdfFinal(documentoId: string) {
     }
   }
 
-  const final = await pdf.save()
+  // La vista previa se marca para que nadie la confunda con el documento final
+  if (!completo && faltan > 0) {
+    const fuente = await pdf.embedFont(StandardFonts.Helvetica)
+    const primera = pdf.getPage(0)
+    primera.drawText(`VISTA PREVIA - faltan ${faltan} firma(s)`, {
+      x: 12,
+      y: primera.getSize().height - 14,
+      size: 8,
+      font: fuente,
+      color: rgb(0.7, 0.1, 0.1),
+    })
+  }
+
+  return {
+    bytes: await pdf.save(),
+    doc: doc as unknown as DocBasico,
+    correos: lista.map((s) => s.firmante_correo),
+  }
+}
+
+// Documento con las firmas registradas hasta ahora (para que los firmantes lo revisen)
+export async function pdfVistaPrevia(documentoId: string) {
+  const { bytes } = await armarPdf(documentoId, false)
+  return bytes
+}
+
+// Envía el PDF firmado como adjunto al propietario y a cada firmante
+async function enviarCopiaFinal(doc: DocBasico, correosFirmantes: string[], final: Uint8Array, hashFinal: string) {
+  const { data: dueno } = await admin.from('profiles').select('correo').eq('id', doc.propietario_id).single()
+  const adjunto = { filename: `firmado-${doc.nombre_archivo}`, content: Buffer.from(final) }
+  const destinos = new Set<string>(correosFirmantes)
+  if (dueno) destinos.add(dueno.correo)
+
+  for (const para of destinos) {
+    const esDueno = para === dueno?.correo
+    const url = `${process.env.FRONTEND_URL}/`
+    try {
+      await enviarCorreo({
+        para,
+        asunto: `Documento firmado por todos: ${doc.nombre_archivo}`,
+        adjuntos: [adjunto],
+        enlace: esDueno ? url : undefined,
+        html: plantilla({
+          titulo: 'Documento firmado por todos',
+          parrafos: [
+            `Todos los firmantes completaron <b>${esc(doc.nombre_archivo)}</b>. Adjuntamos la copia firmada.`,
+            `Huella SHA-256 del PDF firmado:<br><code style="font-size:12px">${hashFinal}</code>`,
+          ],
+          boton: esDueno ? { texto: 'Abrir SignApp', url } : undefined,
+        }),
+      })
+    } catch (e) {
+      console.error('No se pudo enviar la copia final a', para, e)
+    }
+  }
+}
+
+async function generarPdfFinal(documentoId: string) {
+  const { bytes: final, doc, correos } = await armarPdf(documentoId, true)
   const hashFinal = sha256(final)
   const ruta = `${doc.propietario_id}/${doc.id}-firmado.pdf`
 
@@ -84,21 +156,7 @@ async function generarPdfFinal(documentoId: string) {
     .eq('id', doc.id)
   await admin.from('auditoria').insert({ documento_id: doc.id, accion: 'documento_completado' })
 
-  try {
-    const { data: dueno } = await admin.from('profiles').select('correo').eq('id', doc.propietario_id).single()
-    if (dueno) {
-      const enlace = `${process.env.FRONTEND_URL}/`
-      await enviarCorreo({
-        para: dueno.correo,
-        asunto: `Documento firmado por todos: ${doc.nombre_archivo}`,
-        enlace,
-        html: `<p>Todos los firmantes completaron <b>${esc(doc.nombre_archivo)}</b>.</p>
-<p><a href="${enlace}">Abrir SignApp</a> para descargar el PDF firmado.</p>`,
-      })
-    }
-  } catch (e) {
-    console.error('No se pudo avisar al propietario:', e)
-  }
+  await enviarCopiaFinal(doc, correos, final, hashFinal)
 }
 
 // Si ya firmaron todos, genera el PDF final. Devuelve 'completo', 'pendientes' o 'error'.
