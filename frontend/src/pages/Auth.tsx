@@ -35,7 +35,7 @@ export default function Auth() {
 
   return (
     <div className="card">
-      <h1>SignApp</h1>
+      <img className="mascota" src="/mascotas/patito.svg" alt="" /><h1>SignApp</h1>
       <p className="sub">{modo === 'login' ? 'Inicia sesión' : 'Crea tu cuenta'}</p>
 
       <form onSubmit={enviar}>

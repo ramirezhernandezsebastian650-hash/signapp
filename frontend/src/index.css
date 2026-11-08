@@ -1,70 +1,352 @@
-body { margin: 0; font-family: system-ui, sans-serif; background: #f1f5f9; color: #0f172a; }
-.card { max-width: 380px; margin: 80px auto; background: #fff; padding: 32px; border-radius: 12px; box-shadow: 0 2px 12px #0001; text-align: center; }
-.card h1 { color: #1e3a8a; margin: 0; }
-.sub { color: #64748b; margin-bottom: 20px; }
+/* =====================================================================
+   SignApp - tema "pastel": menta y cielo, redondeado y amigable.
+   Todas las clases de las pantallas se conservan; solo cambia el aspecto.
+   Para cambiar los colores, edita las variables de :root.
+   ===================================================================== */
+@import '@fontsource/nunito/400.css';
+@import '@fontsource/nunito/600.css';
+@import '@fontsource/nunito/700.css';
+@import '@fontsource/nunito/800.css';
+
+:root {
+  --menta-50: #effaf5;
+  --menta-100: #d7f4e7;
+  --menta-200: #b8ebd5;
+  --menta-400: #6fd1b0;
+  --menta-600: #2a8f78;
+  --cielo-50: #eff7fd;
+  --cielo-100: #dbeefb;
+  --cielo-200: #b9dcf6;
+  --cielo-400: #7ab8e8;
+  --cielo-600: #3b7fb4;
+  --tinta: #1d3b4b;
+  --tinta-suave: #587081;
+  --borde: #cfe7e3;
+  --arena: #fff1c9;
+  --durazno: #ffe1d3;
+  --durazno-borde: #ffc9b3;
+  --durazno-texto: #9c3d1b;
+  --grad: linear-gradient(135deg, #8fe0c6 0%, #92c9f2 100%);
+  --sombra: 0 6px 18px rgba(80, 160, 170, 0.13);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'Nunito', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  color: var(--tinta);
+  background:
+    radial-gradient(circle at 1px 1px, rgba(111, 209, 176, 0.2) 1.5px, transparent 0) 0 0 / 28px 28px,
+    linear-gradient(160deg, var(--menta-50) 0%, var(--cielo-50) 55%, #f4fbf8 100%);
+  background-attachment: fixed;
+}
+
+h1, h2, h3 { font-weight: 800; }
+
+/* ---------- Mascotas ---------- */
+.mascota { width: 110px; height: 110px; display: block; margin: 0 auto 4px; }
+.mascota-chica { width: 54px; height: 54px; flex: none; }
+.mascota-grande { width: 140px; height: 140px; display: block; margin: 0 auto 8px; }
+
+/* ---------- Tarjeta de login y avisos ---------- */
+.card {
+  max-width: 400px;
+  margin: 56px auto;
+  background: #fff;
+  padding: 32px;
+  border-radius: 28px;
+  border: 2px solid var(--borde);
+  box-shadow: 0 12px 32px rgba(80, 160, 170, 0.16);
+  text-align: center;
+}
+.card h1 { color: var(--menta-600); margin: 6px 0 0; font-size: 32px; }
+.sub { color: var(--tinta-suave); margin: 4px 0 20px; }
+
 form { display: flex; flex-direction: column; gap: 12px; }
-input { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 15px; }
-button { padding: 10px 14px; border: 0; border-radius: 8px; background: #1e3a8a; color: #fff; font-size: 15px; cursor: pointer; }
-button:disabled { opacity: .6; }
-.mensaje { color: #b91c1c; font-size: 14px; }
-.cambio { font-size: 14px; color: #475569; }
-.panel { max-width: 800px; margin: 40px auto; padding: 0 20px; }
-.panel header { display: flex; justify-content: space-between; align-items: center; }
-.vacio { color: #64748b; margin-top: 40px; text-align: center; }
-.subir { display: inline-block; margin: 24px 0 8px; padding: 10px 16px; border-radius: 8px; background: #1e3a8a; color: #fff; cursor: pointer; }
-.lista { list-style: none; padding: 0; }
-.lista li { display: flex; align-items: center; gap: 12px; background: #fff; padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 1px 4px #0001; }
-.lista li div { flex: 1; display: flex; flex-direction: column; }
-.lista small { color: #64748b; font-family: monospace; }
-.estado { padding: 2px 10px; border-radius: 999px; font-size: 13px; background: #e2e8f0; }
-.estado.borrador { background: #fef3c7; }
-.estado.firmado { background: #bbf7d0; }
-.estado.rechazado { background: #fecaca; }
-.estado.en_proceso { background: #bfdbfe; }
+
+input, textarea {
+  font: inherit;
+  padding: 11px 14px;
+  border: 2px solid var(--borde);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--tinta);
+}
+input:focus, textarea:focus {
+  outline: none;
+  border-color: var(--cielo-400);
+  box-shadow: 0 0 0 4px rgba(122, 184, 232, 0.2);
+}
+
+/* ---------- Botones ---------- */
+button {
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 10px 16px;
+  border-radius: 14px;
+  border: 2px solid var(--borde);
+  background: #fff;
+  color: var(--tinta);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(60, 140, 150, 0.18); }
+button:active:not(:disabled) { transform: translateY(0); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Botones principales: degradado menta -> cielo */
+button.primario,
+button[type='submit'],
+.confirmar,
+.subir,
+.tabs button.activa {
+  background: var(--grad);
+  border-color: transparent;
+  color: var(--tinta);
+}
+
+.rechazar {
+  width: 100%;
+  margin-top: 8px;
+  background: var(--durazno);
+  border-color: var(--durazno-borde);
+  color: var(--durazno-texto);
+}
+
+.mensaje { color: #b4472a; font-size: 14px; margin: 8px 0; }
+.cambio { font-size: 14px; color: var(--tinta-suave); }
+.cambio a { color: var(--cielo-600); font-weight: 700; }
+.ayuda { font-size: 13px; color: var(--tinta-suave); line-height: 1.45; }
+.aviso {
+  background: var(--menta-100);
+  border: 2px solid var(--menta-200);
+  color: #1c5f4f;
+  padding: 10px 14px;
+  border-radius: 14px;
+  margin: 12px 0;
+  font-size: 14px;
+}
+
+/* ---------- Estructura general ---------- */
+.panel { max-width: 820px; margin: 36px auto; padding: 0 20px; }
 .panel.ancho { max-width: 1000px; }
-.firma-layout { display: flex; gap: 24px; align-items: flex-start; margin-top: 24px; }
-.pdf-wrap { border: 1px solid #cbd5e1; background: #fff; }
-.paginas { display: flex; gap: 12px; align-items: center; justify-content: center; margin-top: 12px; }
-.lateral { background: #fff; padding: 16px; border-radius: 12px; box-shadow: 0 1px 6px #0001; width: 310px; }
-.tabs { display: flex; gap: 8px; margin-bottom: 12px; }
-.tabs button { background: #e2e8f0; color: #0f172a; flex: 1; }
-.tabs button.activa { background: #1e3a8a; color: #fff; }
-.lienzo { border: 1px dashed #94a3b8; border-radius: 8px; background: #f8fafc; touch-action: none; }
-.fila { display: flex; gap: 8px; margin-top: 8px; }
+.panel header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.panel h1 { font-size: 28px; margin: 0; }
+.titulo-con-mascota { display: flex; align-items: center; gap: 12px; }
+.saludo { margin: 2px 0 0; color: var(--tinta-suave); font-size: 14px; }
+
+.barra-acciones { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 24px 0 8px; }
+.subir {
+  display: inline-block;
+  padding: 10px 18px;
+  border-radius: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 3px 10px rgba(60, 140, 150, 0.15);
+}
+
+.vacio { text-align: center; color: var(--tinta-suave); margin: 40px 0; }
+.vacio p { margin: 4px 0; }
+
+/* ---------- Estados y etiquetas ---------- */
+.estado {
+  flex: none;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  background: #e8eef2;
+}
+.estado.borrador { background: var(--arena); }
+.estado.en_proceso { background: var(--cielo-100); color: #245f8c; }
+.estado.firmado { background: var(--menta-100); color: #1c5f4f; }
+.estado.rechazado { background: #ffd9cc; color: var(--durazno-texto); }
+.estado.cancelado { background: #e6e9f5; color: #4a5280; }
+
+.chips { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  background: #e8eef2;
+}
+.chip.pendiente { background: var(--arena); }
+.chip.firmado { background: var(--menta-100); color: #1c5f4f; }
+.chip.rechazado { background: #ffd9cc; color: var(--durazno-texto); }
+
+/* ---------- Pantalla de documentos ---------- */
+.lista { list-style: none; padding: 0; margin: 16px 0 0; display: grid; gap: 18px; }
+
+.doc-card {
+  background: #fff;
+  border: 2px solid var(--borde);
+  border-radius: 22px;
+  padding: 18px 20px;
+  box-shadow: var(--sombra);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.doc-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(80, 160, 170, 0.2); }
+
+.doc-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.doc-info { min-width: 0; }
+.doc-nombre { margin: 0; font-size: 18px; word-break: break-word; }
+.doc-hash { display: block; margin-top: 3px; color: var(--tinta-suave); font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; }
+
+.doc-seccion { background: var(--menta-50); border-radius: 16px; padding: 12px 14px; }
+.doc-seccion-titulo {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--tinta-suave);
+}
+.progreso { height: 8px; border-radius: 999px; background: #d9efe8; overflow: hidden; margin-bottom: 10px; }
+.progreso-barra { height: 100%; border-radius: 999px; background: var(--grad); transition: width 0.4s; }
+
+/* Motivo de rechazo: bloque propio dentro de la misma tarjeta */
+.doc-motivo {
+  background: #fff5ee;
+  border: 2px dashed var(--durazno-borde);
+  border-radius: 16px;
+  padding: 12px 14px;
+}
+.doc-motivo-titulo {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--durazno-texto);
+}
+.doc-motivo-item + .doc-motivo-item { margin-top: 10px; padding-top: 10px; border-top: 1px solid #ffdcc8; }
+.doc-motivo-quien { font-size: 12.5px; font-weight: 700; color: #8a5a44; word-break: break-all; }
+.doc-motivo-texto {
+  margin: 5px 0 0;
+  padding: 8px 12px;
+  background: #fff;
+  border-radius: 12px;
+  border-left: 4px solid #ffb590;
+  font-size: 14px;
+}
+
+.doc-acciones { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 2px; }
+
+/* ---------- Configurar firmantes y firma ---------- */
+.fila { display: flex; gap: 8px; }
 .fila button { flex: 1; }
-.ayuda { font-size: 13px; color: #475569; }
-.confirmar { width: 100%; margin-top: 12px; background: #047857; }
-.lateral .subir { margin: 0; display: block; text-align: center; }
+
+.firma-layout { display: flex; gap: 24px; align-items: flex-start; margin-top: 24px; flex-wrap: wrap; }
+.pdf-wrap { border: 2px solid var(--borde); border-radius: 12px; background: #fff; box-shadow: var(--sombra); }
+.paginas { display: flex; gap: 12px; align-items: center; justify-content: center; margin-top: 12px; }
+
+.lateral {
+  background: #fff;
+  padding: 18px;
+  border-radius: 22px;
+  border: 2px solid var(--borde);
+  box-shadow: var(--sombra);
+  width: 310px;
+}
+.lateral h3 { margin: 0 0 10px; }
+.lateral .fila input { flex: 1; min-width: 0; }
+.lateral .subir { margin: 0; display: block; text-align: center; box-shadow: none; }
+
+.tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+.tabs button { flex: 1; }
+
+.lienzo { border: 2px dashed #9ccfe0; border-radius: 14px; background: #f7fcfb; touch-action: none; }
+.confirmar { width: 100%; margin-top: 12px; }
+
 .overlay { position: absolute; inset: 0; cursor: crosshair; touch-action: none; }
-.zona { position: absolute; border: 2px solid; border-radius: 4px; box-sizing: border-box; }
-.zona span { position: absolute; top: -20px; left: -2px; color: #fff; font-size: 11px; padding: 1px 6px; border-radius: 4px; white-space: nowrap; }
-.zona button { position: absolute; top: -10px; right: -10px; width: 20px; height: 20px; padding: 0; border-radius: 50%; background: #0f172a; font-size: 13px; line-height: 1; }
+.zona { position: absolute; border: 2px solid; border-radius: 6px; box-sizing: border-box; }
+.zona span { position: absolute; top: -20px; left: -2px; color: #fff; font-size: 11px; padding: 1px 6px; border-radius: 6px; white-space: nowrap; }
+.zona button {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--tinta);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.overlay-ro { position: absolute; inset: 0; pointer-events: none; }
+.zona-firma {
+  position: absolute;
+  border: 2px dashed var(--cielo-600);
+  background: rgba(122, 184, 232, 0.18);
+  border-radius: 6px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.zona-firma span { font-size: 11px; color: var(--cielo-600); }
+.zona-firma img { width: 100%; height: 100%; object-fit: contain; }
+
 .firmantes { list-style: none; padding: 0; margin: 12px 0; }
-.firmantes li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px; margin-bottom: 6px; border: 1px solid #e2e8f0; border-left: 5px solid; border-radius: 6px; cursor: pointer; font-size: 14px; }
-.firmantes li.sel { background: #eff6ff; }
+.firmantes li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  border: 2px solid var(--borde);
+  border-left-width: 6px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.firmantes li.sel { background: var(--cielo-50); }
 .firmantes li div { display: flex; flex-direction: column; min-width: 0; }
 .firmantes li strong { overflow: hidden; text-overflow: ellipsis; }
-.firmantes small { color: #64748b; }
-.firmantes li button { background: #e2e8f0; color: #0f172a; padding: 4px 8px; font-size: 12px; }
-.lateral .fila input { flex: 1; min-width: 0; }
-.overlay-ro { position: absolute; inset: 0; pointer-events: none; }
-.zona-firma { position: absolute; border: 2px dashed #1e3a8a; background: #1e3a8a22; box-sizing: border-box; display: flex; align-items: center; justify-content: center; }
-.zona-firma span { font-size: 11px; color: #1e3a8a; }
-.zona-firma img { width: 100%; height: 100%; object-fit: contain; }
-.rechazar { width: 100%; margin-top: 8px; background: #fecaca; color: #7f1d1d; }
-.rechazo textarea { width: 100%; box-sizing: border-box; min-height: 70px; margin-top: 8px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; }
-.integridad { background: #fff; padding: 12px 16px; border-radius: 8px; margin-top: 16px; box-shadow: 0 1px 4px #0001; }
+.firmantes small { color: var(--tinta-suave); }
+.firmantes li button { padding: 4px 10px; font-size: 12px; border-radius: 10px; }
+
+.rechazo textarea { width: 100%; min-height: 70px; margin-top: 8px; font: inherit; }
+
+/* ---------- Historial ---------- */
+.integridad {
+  background: #fff;
+  padding: 12px 16px;
+  border-radius: 16px;
+  margin-top: 16px;
+  border: 2px solid var(--borde);
+  box-shadow: var(--sombra);
+}
 .integridad p { margin: 6px 0; font-size: 14px; }
 .integridad code { word-break: break-all; font-size: 12px; }
-.tabla { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px #0001; }
-.tabla th, .tabla td { text-align: left; padding: 10px 14px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
-.tabla th { background: #f1f5f9; }
-.resumen { margin: 6px 0 2px; font-size: 13px; color: #334155; }
-.chips { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { padding: 2px 10px; border-radius: 999px; font-size: 12px; background: #e2e8f0; }
-.chip.pendiente { background: #fef3c7; }
-.chip.firmado { background: #bbf7d0; }
-.chip.rechazado { background: #fecaca; }
-.motivo { color: #b91c1c; margin-top: 4px; }
-.estado.cancelado { background: #e2e8f0; }
-.aviso { background: #dcfce7; border: 1px solid #86efac; color: #14532d; padding: 10px 14px; border-radius: 8px; margin: 12px 0; font-size: 14px; }
+
+.tabla {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #fff;
+  border: 2px solid var(--borde);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--sombra);
+}
+.tabla th, .tabla td { text-align: left; padding: 10px 14px; border-bottom: 1px solid #e3f0ed; font-size: 14px; }
+.tabla th { background: var(--menta-50); color: var(--tinta-suave); }
+.tabla tr:last-child td { border-bottom: none; }

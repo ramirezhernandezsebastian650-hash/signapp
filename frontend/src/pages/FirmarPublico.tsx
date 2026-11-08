@@ -144,7 +144,7 @@ export default function FirmarPublico() {
     URL.revokeObjectURL(url)
   }
 
-  if (error && !info) return <div className="card"><h1>SignApp</h1><p className="mensaje">{error}</p></div>
+  if (error && !info) return <div className="card"><img className="mascota" src="/mascotas/ranita.svg" alt="" /><h1>SignApp</h1><p className="mensaje">{error}</p></div>
   if (!info) return <div className="card"><p>Cargando...</p></div>
   if (!pdfBlob) return <div className="card"><p>Cargando documento...</p></div>
 
