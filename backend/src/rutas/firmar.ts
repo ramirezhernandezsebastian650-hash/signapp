@@ -1,8 +1,8 @@
 import { Router, type Request, type Response, type NextFunction } from 'express'
 import { z } from 'zod'
 import { admin } from '../supabase.js'
-import { enviarCorreo, esc } from '../correo.js'
-import { intentarFinalizar } from '../pdf.js'
+import { enviarCorreo, esc, plantilla } from '../correo.js'
+import { intentarFinalizar, pdfVistaPrevia } from '../pdf.js'
 
 export const rutasFirmar = Router()
 
@@ -14,6 +14,19 @@ async function auditar(documentoId: string, accion: string, ip?: string) {
   if (error) console.error('auditoria:', error.message)
 }
 
+// Evita llenar el historial con aperturas repetidas (recargas, modo desarrollo)
+async function auditarApertura(documentoId: string, correo: string, ip?: string) {
+  const accion = `apertura por ${correo}`
+  const desde = new Date(Date.now() - 60_000).toISOString()
+  const { count } = await admin
+    .from('auditoria')
+    .select('id', { count: 'exact', head: true })
+    .eq('documento_id', documentoId)
+    .eq('accion', accion)
+    .gte('fecha_hora', desde)
+  if (!count) await auditar(documentoId, accion, ip)
+}
+
 // Carga la solicitud del enlace. El token es el "permiso" del firmante.
 async function cargar(req: Request, res: Response, next: NextFunction) {
   const token = tokenSchema.safeParse(req.params.token)
@@ -21,22 +34,31 @@ async function cargar(req: Request, res: Response, next: NextFunction) {
 
   const { data: sol } = await admin
     .from('solicitudes_firma')
-    .select('id, firmante_correo, estado, documentos(id, nombre_archivo, estado, storage_path, propietario_id), zonas_firma(pagina, pos_x, pos_y, ancho, alto)')
+    .select('id, firmante_correo, estado, documentos(id, nombre_archivo, estado, storage_path, storage_path_final, propietario_id), zonas_firma(pagina, pos_x, pos_y, ancho, alto)')
     .eq('token_acceso', token.data)
     .maybeSingle()
   if (!sol) return res.status(404).json({ error: 'Enlace no válido.' })
 
   const doc = Array.isArray(sol.documentos) ? sol.documentos[0] : sol.documentos
+  // Un documento en borrador todavía no se envió: su enlace no abre nada
+  if (!doc || doc.estado === 'borrador') return res.status(404).json({ error: 'Enlace no válido.' })
+
   res.locals.sol = sol
   res.locals.doc = doc
-  res.locals.puede = sol.estado === 'pendiente' && doc?.estado === 'en_proceso'
+  res.locals.puede = sol.estado === 'pendiente' && doc.estado === 'en_proceso'
   next()
 }
 
-// 1. Información del enlace: solo las zonas de ESTE firmante
+// 1. Información del enlace: la persona puede revisarlo siempre; firmar solo si le toca
 rutasFirmar.get('/firmar/:token', cargar, async (req, res) => {
   const { sol, doc, puede } = res.locals
-  if (puede) await auditar(doc.id, `apertura por ${sol.firmante_correo}`, req.ip)
+  await auditarApertura(doc.id, sol.firmante_correo, req.ip)
+
+  const { data: todos } = await admin
+    .from('solicitudes_firma')
+    .select('firmante_correo, estado')
+    .eq('documento_id', doc.id)
+    .order('orden_firma')
 
   const zonas = [...sol.zonas_firma].sort((a: any, b: any) => a.pagina - b.pagina || a.pos_y - b.pos_y)
   res.json({
@@ -46,20 +68,32 @@ rutasFirmar.get('/firmar/:token', cargar, async (req, res) => {
     estadoDocumento: doc.estado,
     puedeFirmar: puede,
     zonas: puede ? zonas : [],
+    firmantes: todos ?? [],
+    documentoFinal: doc.estado === 'firmado' && Boolean(doc.storage_path_final),
   })
 })
 
-// 2. El PDF original, servido por el backend
+// 2. El PDF: la copia final si ya firmaron todos; si no, el original con las firmas de ahora
 rutasFirmar.get('/firmar/:token/pdf', cargar, async (_req, res) => {
-  const { doc, puede } = res.locals
-  if (!puede) return res.status(403).json({ error: 'Este documento ya no está disponible para firma.' })
+  const { doc } = res.locals
+  let bytes: Buffer
 
-  const { data, error } = await admin.storage.from('documentos').download(doc.storage_path)
-  if (error || !data) return res.status(500).json({ error: 'No se pudo leer el documento.' })
+  if (doc.estado === 'firmado' && doc.storage_path_final) {
+    const { data, error } = await admin.storage.from('firmados').download(doc.storage_path_final)
+    if (error || !data) return res.status(500).json({ error: 'No se pudo leer el documento.' })
+    bytes = Buffer.from(await data.arrayBuffer())
+  } else {
+    try {
+      bytes = Buffer.from(await pdfVistaPrevia(doc.id))
+    } catch (e) {
+      console.error('Vista previa:', e)
+      return res.status(500).json({ error: 'No se pudo preparar la vista del documento.' })
+    }
+  }
 
   res.setHeader('Content-Type', 'application/pdf')
   res.setHeader('Cache-Control', 'no-store')
-  res.send(Buffer.from(await data.arrayBuffer()))
+  res.send(bytes)
 })
 
 // 3. Firmar: el cuerpo trae SOLO la imagen; la posición sale de la base de datos
@@ -142,9 +176,13 @@ rutasFirmar.post('/firmar/:token/rechazar', cargar, async (req, res) => {
       await enviarCorreo({
         para: dueno.correo,
         asunto: `Documento rechazado: ${doc.nombre_archivo}`,
-        enlace: `${process.env.FRONTEND_URL}/`,
-        html: `<p><b>${esc(sol.firmante_correo)}</b> rechazó <b>${esc(doc.nombre_archivo)}</b>.</p>
-<p>Motivo: ${esc(cuerpo.data.motivo)}</p>`,
+        html: plantilla({
+          titulo: 'Documento rechazado',
+          parrafos: [
+            `<b>${esc(sol.firmante_correo)}</b> rechazó <b>${esc(doc.nombre_archivo)}</b>.`,
+            `Motivo: ${esc(cuerpo.data.motivo)}`,
+          ],
+        }),
       })
     }
   } catch (e) {

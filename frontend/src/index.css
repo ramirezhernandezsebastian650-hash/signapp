@@ -67,3 +67,4 @@ button:disabled { opacity: .6; }
 .chip.rechazado { background: #fecaca; }
 .motivo { color: #b91c1c; margin-top: 4px; }
 .estado.cancelado { background: #e2e8f0; }
+.aviso { background: #dcfce7; border: 1px solid #86efac; color: #14532d; padding: 10px 14px; border-radius: 8px; margin: 12px 0; font-size: 14px; }
